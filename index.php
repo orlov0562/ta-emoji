@@ -9,15 +9,21 @@
 
         $emojiIcoTable = TaEmoji::getEmojiIcoTable();
         $emojis = [];
-        foreach($emojiIcoTable['emojiClass'] as $i=>$class) {
+        foreach($emojiIcoTable as $emojiName=>$ext) {
             $emojis[] = '<img src="ta-emoji/blank.gif"
-                              alt="'.$emojiIcoTable['alt'][$i].'"
-                              class="ta-emoji-ico '.$class.'"
-                              data-ta-emoji="'.$i.'"
+                              alt="'.$ext['alt'].'"
+                              class="ta-emoji-ico ta-emoji-ico-'.$emojiName.'"
+                              data-ta-emoji="'.$emojiName.'"
                         >';
         }
 
-        $text = str_replace($emojiIcoTable['code'], $emojis, $text);
+        $codes = [];
+
+        foreach ($emojiIcoTable as $name=>$ext) {
+            $codes[] = ':'.$name.':';
+        }
+
+        $text = str_replace($codes, $emojis, $text);
 
         return $text;
     }
@@ -25,7 +31,16 @@
     function convertInputTextToPlainText($text) {
 
         $emojiIcoTable = TaEmoji::getEmojiIcoTable();
-        $text = str_replace($emojiIcoTable['alt'], $emojiIcoTable['code'], $text);
+
+        $codes = [];
+        $alts = [];
+
+        foreach ($emojiIcoTable as $name=>$ext) {
+            $codes[] = ':'.$name.':';
+            $alts[] = $ext['alt'];
+        }
+
+        $text = str_replace($alts, $codes, $text);
         return $text;
     }
 

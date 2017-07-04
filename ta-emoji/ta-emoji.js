@@ -28,7 +28,6 @@ taEmoji.options = {
 			},
 			dataCodeAttr:'ta-emoji'
 		}
-
 	},
 
 	emojiPanel:{
@@ -133,8 +132,8 @@ taEmoji.convertEmojiTextToPlainText = function(html){
     var emojiIcoTable = taEmoji.options.emojiIcoTable;
     text.append(html);
     text.find('.'+taEmoji.options.emojiTextarea.emojiIco.attr.class).replaceWith(function(){
-        var id = +$(this).data(taEmoji.options.emojiTextarea.emojiIco.dataCodeAttr);
-        return emojiIcoTable.code[id];
+        var emojiName = $(this).data(taEmoji.options.emojiTextarea.emojiIco.dataCodeAttr);
+        return ':'+emojiName+':';
     });
     text.find('br').replaceWith("\n");
     return text.text();
@@ -143,34 +142,37 @@ taEmoji.convertEmojiTextToPlainText = function(html){
 taEmoji.convertPlainTextToEmojiText = function(text){
     var $ = jQuery;
     var emojiIcoTable = taEmoji.options.emojiIcoTable;
-    for (var i = 0; i < emojiIcoTable.code.length; i++) {
-        var code = emojiIcoTable.code[i].trim();
-        var alt = emojiIcoTable.alt[i].trim();
-		var emoji = null;
 
-		if (alt && (text.indexOf(alt) > -1)) {
-			regexAlt = new RegExp(alt, "gu");
-			text = text.replace(regexAlt, code);
-		}
+    for(emojiIcoName in emojiIcoTable) {
+        var code = ':'+emojiIcoName.trim()+':';
+        var alt = emojiIcoTable[emojiIcoName].alt.trim();
+        var emoji = null;
 
-		if (code && (text.indexOf(code) > -1)) {
-			regexCode = new RegExp(code, "g");
-			if (emoji == null) emoji = taEmoji.createEmojiFromEmojiTableItem(i);
-			text = text.replace(regexCode, emoji[0].outerHTML);
-		}
+        if (alt && (text.indexOf(alt) > -1)) {
+                regexAlt = new RegExp(alt, "gu");
+                text = text.replace(regexAlt, code);
+        }
+
+        if (code && (text.indexOf(code) > -1)) {
+                regexCode = new RegExp(code, "g");
+                if (emoji == null) emoji = taEmoji.createEmojiEl(emojiIcoName, emojiIcoTable[emojiIcoName].alt);
+                text = text.replace(regexCode, emoji[0].outerHTML);
+        }
 
     }
+
     return text;
 };
 
-taEmoji.createEmojiFromEmojiTableItem = function(emojiTableItemId){
+taEmoji.createEmojiEl = function(emojiName, emojiAlt){
 	var emojiIcoTable = taEmoji.options.emojiIcoTable;
 	var emoji = $('<img/>', taEmoji.options.emojiTextarea.emojiIco.attr);
 	emoji.resize(function(){return false;});
-	emoji.addClass(emojiIcoTable.emojiClass[emojiTableItemId]);
-	emoji.attr('alt', emojiIcoTable.alt[emojiTableItemId]);
-	emoji.attr('data-'+taEmoji.options.emojiTextarea.emojiIco.dataCodeAttr, emojiTableItemId);
-	emoji.data(taEmoji.options.emojiTextarea.emojiIco.dataCodeAttr, emojiTableItemId);
+
+	emoji.addClass(taEmoji.options.emojiTextarea.emojiIco.attr.class+"-"+emojiName);
+	emoji.attr('alt', emojiAlt);
+	emoji.attr('data-'+taEmoji.options.emojiTextarea.emojiIco.dataCodeAttr, emojiName);
+	emoji.data(taEmoji.options.emojiTextarea.emojiIco.dataCodeAttr, emojiName);
 	return emoji;
 }
 
@@ -240,12 +242,12 @@ taEmoji.loadEmojiPanel = function(){
 
     if (taEmoji.options.emojiPanel.autoHide) {
 
-		emojiPanel.mouseenter(function(){
-			if (taEmoji.emojiPanelHideTimer != null) {
-				clearInterval(taEmoji.emojiPanelHideTimer);
-				taEmoji.emojiPanelHideTimer = null;
-			}
-		});
+        emojiPanel.mouseenter(function(){
+                if (taEmoji.emojiPanelHideTimer != null) {
+                        clearInterval(taEmoji.emojiPanelHideTimer);
+                        taEmoji.emojiPanelHideTimer = null;
+                }
+        });
 
         emojiPanel.mouseleave(function(){
             taEmoji.hideEmojiPanel(taEmoji.options.emojiPanel.autoHideInterval);
@@ -254,23 +256,25 @@ taEmoji.loadEmojiPanel = function(){
 
     var emojiIcoTable = taEmoji.options.emojiIcoTable;
 
-    for (var i=0; i<emojiIcoTable.code.length; i++) {
-        var emoji = $('<img/>',  taEmoji.options.emojiPanel.emojiBtn.emojiIco.attr);
-        emoji.addClass(emojiIcoTable.emojiClass[i]);
-        emoji.attr('alt', emojiIcoTable.alt[i]);
+    for(emojiIcoName in emojiIcoTable) {
+
+        var emoji = $('<img/>', taEmoji.options.emojiPanel.emojiBtn.emojiIco.attr);
+        emoji.addClass(taEmoji.options.emojiPanel.emojiBtn.emojiIco.attr.class+'-'+emojiIcoName);
+        emoji.attr('alt', emojiIcoTable[emojiIcoName].alt);
 
         var panelBtn = $('<span/>', taEmoji.options.emojiPanel.emojiBtn.attr);
-        panelBtn.attr('data-ta-emoji', i);
+        panelBtn.attr('data-ta-emoji', emojiIcoName);
         panelBtn.append(emoji);
         panelBtn.click(function(){
             taEmoji.emojiTextarea.focus();
-            var emojiTableItemId = +$(this).data('ta-emoji');
-            var emoji = taEmoji.createEmojiFromEmojiTableItem(emojiTableItemId);
+            var emojiIcoName = $(this).data('ta-emoji');
+            var emoji = taEmoji.createEmojiEl(emojiIcoName, emojiIcoTable[emojiIcoName].alt);
             taEmoji.pasteHtmlAtCaret(emoji[0].outerHTML);
             return false;
         });
 
         emojiPanel.append(panelBtn);
+
     }
 
     emojiPanel.hide();
