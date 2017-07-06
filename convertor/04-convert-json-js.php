@@ -9,7 +9,7 @@
 ?>taEmoji.options.emojiIcoTable = {<?php
 foreach($json as $k=>$item) {
     if ($k) echo ',';
-    echo "'".$item[0]."':{alt:'".$item[1]."'}";
+    echo "'".$item[0]."':{alt:'".$item[1]."', sort:".$k."}";
 }
 ?>};<?php
 

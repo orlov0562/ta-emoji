@@ -11,7 +11,7 @@
 
 class TaEmoji {
     public static function getEmojiIcoTable(){
-        return [<?php foreach($json as $item) echo "'".$item[0]."'=>['alt'=>'".$item[1]."'],";?>];
+        return [<?php foreach($json as $k=>$item) echo "'".$item[0]."'=>['alt'=>'".$item[1]."', 'sort'=>".$k."],";?>];
     }
 }<?php
 
