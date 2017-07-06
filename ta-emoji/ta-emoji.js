@@ -1,55 +1,4 @@
-taEmoji = {};
-
-taEmoji.getInstance = function(){
-    if (typeof jQuery == 'undefined') {
-        taEmoji.logErr('jQuery not found');
-    }
-
-    return jQuery.extend(true, {}, taEmoji);
-}
-
-taEmoji.logErr = function(text){
-    console.log('TA-EMOJI ERR: ' + text);
-};
-
-taEmoji.options = {
-
-	emojiTextarea:{
-		attr: {
-			contentEditable:true,
-			id:'ta-emoji-textarea',
-			class:'ta-emoji-textarea'
-		},
-		emojiIco: {
-			attr:{
-				//contentEditable:false,
-				src:'ta-emoji/blank.gif',
-				class:'ta-emoji-ico'
-			},
-			dataCodeAttr:'ta-emoji'
-		}
-	},
-
-	emojiPanel:{
-		attr:{
-			id:'ta-emoji-panel',
-			class:'ta-emoji-panel'
-		},
-		emojiBtn:{
-			attr:{
-				class:'ta-emoji-panel-btn'
-			},
-			emojiIco: {
-				attr:{
-					src:'ta-emoji/blank.gif',
-					class:'ta-emoji-ico'
-				}
-			}
-		},
-		autoHide:false,
-		autoHideInterval:250
-	},
-
+taEmojiClass = {
     emojiIcoTable:{
         code: [
         ],
@@ -58,90 +7,170 @@ taEmoji.options = {
     }
 };
 
-taEmoji.baseElement = null;
-taEmoji.emojiTextarea = null;
-taEmoji.updateBaseElementContentTimer = null;
-taEmoji.emojiPanelHideTimer = null;
+taEmojiClass.getInstance = function(){
+    if (typeof jQuery == 'undefined') {taEmoji.logErr('jQuery not found');}
+    var obj = jQuery.extend(true, {}, taEmojiClass);
+    obj.init();
+    return obj;
+}
 
-taEmoji.attach = function(baseElementSelector, options){
+taEmojiClass.init = function(){
+	this.options = taEmojiClass.getOptions();
+    this.baseElement = null;
+    this.emojiTextarea = null;
+    this.updateBaseElementContentTimer = null;
+    this.emojiPanelHideTimer = null;
+}
+
+taEmojiClass.logErr = function(text){
+    console.log('TA-EMOJI ERR: ' + text);
+};
+
+taEmojiClass.getOptions = function(){
+	return {
+		emojiTextarea:{
+			attr: {
+				contentEditable:true,
+				id:'ta-emoji-textarea',
+				class:'ta-emoji-textarea'
+			},
+			emojiIco: {
+				attr:{
+					//contentEditable:false,
+					src:'ta-emoji/blank.gif',
+					class:'ta-emoji-ico'
+				},
+				dataCodeAttr:'ta-emoji'
+			},
+			syncBaseElementInterval: 250
+		},
+
+		emojiPanel:{
+			attr:{
+				id:'ta-emoji-panel',
+				class:'ta-emoji-panel'
+			},
+			emojiBtn:{
+				attr:{
+					class:'ta-emoji-panel-btn'
+				},
+				emojiIco: {
+					attr:{
+						src:'ta-emoji/blank.gif',
+						class:'ta-emoji-ico'
+					}
+				}
+			},
+			autoHide:false,
+			autoHideInterval:250,
+			hideOnSelectOne: false
+		}
+	};
+}
+
+
+taEmojiClass.attach = function(baseElementSelector, options){
 
     if (typeof jQuery == 'undefined') {
-        taEmoji.logErr('Required jQuery not found');
+    	taEmojiClass.logErr('Required jQuery not found');
     }
 
     var $ = jQuery;
 
     if (typeof baseElementSelector == 'undefined') {
-        taEmoji.logErr('Base element not specified');
+    	taEmojiClass.logErr('Base element not specified');
     }
 
-    taEmoji.baseElement = $(baseElementSelector).first();
+    var _instance = this;
 
-    if (!taEmoji.baseElement.length) {
-        taEmoji.logErr('Base element not found on page');
+    _instance.baseElement = $(baseElementSelector).first();
+
+    if (!_instance.baseElement.length) {
+        taEmojiClass.logErr('Base element not found on page');
     }
 
     if (typeof options != 'undefined') {
         for(var key in options) {
-            if (taEmoji.options.hasOwnProperty(key)) {
-                taEmoji.options.key = options.key;
+            if (_instance.options.hasOwnProperty(key)) {
+            	_instance.options.key = options.key;
             }
         }
     }
 
-    taEmoji.emojiTextarea = $('<div/>', taEmoji.options.emojiTextarea.attr);
+    _instance.emojiTextarea = $('<div/>', _instance.options.emojiTextarea.attr);
 
-    taEmoji.baseElement.resize(function(){
-        taEmoji.emojiTextarea.width(taEmoji.baseElement.width());
-        taEmoji.emojiTextarea.height(taEmoji.baseElement.height());
-    });
-    taEmoji.baseElement.resize();
-
-    taEmoji.emojiTextarea.on('blur drop keyup paste copy cut mouseup', function(){
-
-        if (taEmoji.updateBaseElementContentTimer != null) {
-            clearInterval(taEmoji.updateBaseElementContentTimer);
-            taEmoji.updateBaseElementContentTimer = null;
-        }
-        taEmoji.updateBaseElementContentTimer = setTimeout(function(){
-            taEmoji.baseElement.val(
-                taEmoji.convertEmojiTextToPlainText(
-                    taEmoji.emojiTextarea.html()
+    _instance.emojiTextarea.on('blur drop keyup copy cut mouseup', function(){
+    	if (!_instance.options.emojiTextarea.syncBaseElementInterval) {
+        	_instance.baseElement.val(
+    			_instance.convertEmojiTextToPlainText(
+					_instance.emojiTextarea.html()
                 )
             );
-        }, 1000);
+    	} else {
+	        if (_instance.updateBaseElementContentTimer != null) {
+	            clearInterval(_instance.updateBaseElementContentTimer);
+	            _instance.updateBaseElementContentTimer = null;
+	        }
 
+	        _instance.updateBaseElementContentTimer = setTimeout(function(){
+	        	_instance.baseElement.val(
+	    			_instance.convertEmojiTextToPlainText(
+						_instance.emojiTextarea.html()
+	                )
+	            );
+	        }, _instance.options.emojiTextarea.syncBaseElementInterval);
+    	}
+        _instance.emojiTextarea.trigger('input');
+    }).on('paste', function(e) {
+    	// insert as plain text
+        e.preventDefault();
+        var text = '';
+        if (e.clipboardData || e.originalEvent.clipboardData) {
+          text = (e.originalEvent || e).clipboardData.getData('text/plain');
+        } else if (window.clipboardData) {
+          text = window.clipboardData.getData('Text');
+        }
+        if (document.queryCommandSupported('insertText')) {
+          document.execCommand('insertText', false, text);
+        } else {
+          document.execCommand('paste', false, text);
+        }
+        // update base input
+        _instance.emojiTextarea.keyup();
     });
 
-    taEmoji.emojiTextarea.insertAfter(taEmoji.baseElement);
+    _instance.emojiTextarea.insertAfter(_instance.baseElement);
 
-    taEmoji.baseElement.hide();
+    _instance.baseElement.hide();
 
-    taEmoji.emojiTextarea.html(
-        taEmoji.convertPlainTextToEmojiText(
-            taEmoji.baseElement.val()
+    _instance.emojiTextarea.html(
+		_instance.convertPlainTextToEmojiText(
+				_instance.baseElement.val()
         )
     );
-
-    setTimeout(function(){ try { document.execCommand("enableObjectResizing", false, false); } catch(e) {} }, 1);
+    setTimeout(function(){
+    	try { document.execCommand("enableObjectResizing", false, false); } catch(e) {};
+	}, 1);
 };
 
-taEmoji.convertEmojiTextToPlainText = function(html){
+taEmojiClass.convertEmojiTextToPlainText = function(html){
     var $ = jQuery;
+    var _instance = this;
     var text = $("<div/>");
-    var emojiIcoTable = taEmoji.options.emojiIcoTable;
+    var emojiIcoTable = taEmojiClass.emojiIcoTable;
     text.append(html);
-    text.find('.'+taEmoji.options.emojiTextarea.emojiIco.attr.class).replaceWith(function(){
-        var emojiName = $(this).data(taEmoji.options.emojiTextarea.emojiIco.dataCodeAttr);
+    text.find('.'+_instance.options.emojiTextarea.emojiIco.attr.class).replaceWith(function(){
+        var emojiName = $(this).data(_instance.options.emojiTextarea.emojiIco.dataCodeAttr);
         return ':'+emojiName+':';
     });
     text.find('br').replaceWith("\n");
     return text.text();
 };
 
-taEmoji.convertPlainTextToEmojiText = function(text){
+taEmojiClass.convertPlainTextToEmojiText = function(text){
     var $ = jQuery;
-    var emojiIcoTable = taEmoji.options.emojiIcoTable;
+    var _instance = this;
+    var emojiIcoTable = taEmojiClass.emojiIcoTable;
 
     for(emojiIcoName in emojiIcoTable) {
         var code = ':'+emojiIcoName.trim()+':';
@@ -149,14 +178,14 @@ taEmoji.convertPlainTextToEmojiText = function(text){
         var emoji = null;
 
         if (alt && (text.indexOf(alt) > -1)) {
-                regexAlt = new RegExp(alt, "gu");
-                text = text.replace(regexAlt, code);
+            regexAlt = new RegExp(alt, "gu");
+            text = text.replace(regexAlt, code);
         }
 
         if (code && (text.indexOf(code) > -1)) {
-                regexCode = new RegExp(code, "g");
-                if (emoji == null) emoji = taEmoji.createEmojiEl(emojiIcoName, emojiIcoTable[emojiIcoName].alt);
-                text = text.replace(regexCode, emoji[0].outerHTML);
+            regexCode = new RegExp(code, "g");
+            if (emoji == null) emoji = _instance.createEmojiEl(emojiIcoName, emojiIcoTable[emojiIcoName].alt);
+            text = text.replace(regexCode, emoji[0].outerHTML);
         }
 
     }
@@ -164,23 +193,21 @@ taEmoji.convertPlainTextToEmojiText = function(text){
     return text;
 };
 
-taEmoji.createEmojiEl = function(emojiName, emojiAlt){
-	var emojiIcoTable = taEmoji.options.emojiIcoTable;
-	var emoji = $('<img/>', taEmoji.options.emojiTextarea.emojiIco.attr);
+taEmojiClass.createEmojiEl = function(emojiName, emojiAlt){
+    var $ = jQuery;
+	var _instance = this;
+	var emojiIcoTable = taEmojiClass.emojiIcoTable;
+	var emoji = $('<img/>', _instance.options.emojiTextarea.emojiIco.attr);
 	emoji.resize(function(){return false;});
 
-	emoji.addClass(taEmoji.options.emojiTextarea.emojiIco.attr.class+"-"+emojiName);
+	emoji.addClass(_instance.options.emojiTextarea.emojiIco.attr.class+"-"+emojiName);
 	emoji.attr('alt', emojiAlt);
-	emoji.attr('data-'+taEmoji.options.emojiTextarea.emojiIco.dataCodeAttr, emojiName);
-	emoji.data(taEmoji.options.emojiTextarea.emojiIco.dataCodeAttr, emojiName);
+	emoji.attr('data-'+_instance.options.emojiTextarea.emojiIco.dataCodeAttr, emojiName);
+	emoji.data(_instance.options.emojiTextarea.emojiIco.dataCodeAttr, emojiName);
 	return emoji;
 }
 
-// https://stackoverflow.com/questions/6690752/insert-html-at-caret-in-a-contenteditable-div
-// https://stackoverflow.com/questions/16736680/get-caret-position-in-contenteditable-div-including-tags
-// https://stackoverflow.com/questions/6690752/insert-html-at-caret-in-a-contenteditable-div
-taEmoji.pasteHtmlAtCaret = function(html) {
-
+taEmojiClass.pasteHtmlAtCaret = function(html) {
     var sel, range;
     if (window.getSelection) {
         // IE9 and non-IE
@@ -216,9 +243,10 @@ taEmoji.pasteHtmlAtCaret = function(html) {
 
 };
 
-taEmoji.hideEmojiPanel = function(timeout){
+taEmojiClass.hideEmojiPanel = function(timeout){
     var $ = jQuery;
-    var emojiPanel = $('#'+taEmoji.options.emojiPanel.attr.id+':visible');
+	var _instance = this;
+    var emojiPanel = $('#'+_instance.options.emojiPanel.attr.id+':visible');
 
     if (!emojiPanel.length) return false;
 
@@ -229,71 +257,82 @@ taEmoji.hideEmojiPanel = function(timeout){
     if(!timeout) {
         emojiPanel.hide();
     } else {
-        if (taEmoji.emojiPanelHideTimer != null) {
-            clearInterval(taEmoji.emojiPanelHideTimer);
-            taEmoji.emojiPanelHideTimer = null;
+        if (_instance.emojiPanelHideTimer != null) {
+            clearInterval(_instance.emojiPanelHideTimer);
+            _instance.emojiPanelHideTimer = null;
         }
-        taEmoji.emojiPanelHideTimer = setTimeout(function(){emojiPanel.hide();}, timeout);
+        _instance.emojiPanelHideTimer = setTimeout(function(){emojiPanel.hide();}, timeout);
     }
 };
 
-taEmoji.loadEmojiPanel = function(){
-    emojiPanel = $('<div/>', taEmoji.options.emojiPanel.attr);
+taEmojiClass.loadEmojiPanel = function(){
+    var $ = jQuery;
+	var _instance = this;
 
-    if (taEmoji.options.emojiPanel.autoHide) {
+    emojiPanel = $('<div/>', _instance.options.emojiPanel.attr);
+    emojiPanel.on('mousedown click',function(e){
+    	e.stopPropagation();
+    	e.preventDefault();
+    	return false;
+    });
+
+    if (_instance.options.emojiPanel.autoHide) {
 
         emojiPanel.mouseenter(function(){
-                if (taEmoji.emojiPanelHideTimer != null) {
-                        clearInterval(taEmoji.emojiPanelHideTimer);
-                        taEmoji.emojiPanelHideTimer = null;
+                if (_instance.emojiPanelHideTimer != null) {
+                        clearInterval(_instance.emojiPanelHideTimer);
+                        _instance.emojiPanelHideTimer = null;
                 }
         });
 
         emojiPanel.mouseleave(function(){
-            taEmoji.hideEmojiPanel(taEmoji.options.emojiPanel.autoHideInterval);
+        	_instance.hideEmojiPanel(_instance.options.emojiPanel.autoHideInterval);
         });
     }
 
-    var emojiIcoTable = taEmoji.options.emojiIcoTable;
+    var emojiIcoTable = taEmojiClass.emojiIcoTable;
 
+    panelBtns = [];
     for(emojiIcoName in emojiIcoTable) {
-
-        var emoji = $('<img/>', taEmoji.options.emojiPanel.emojiBtn.emojiIco.attr);
-        emoji.addClass(taEmoji.options.emojiPanel.emojiBtn.emojiIco.attr.class+'-'+emojiIcoName);
+        var emoji = $('<img/>', _instance.options.emojiPanel.emojiBtn.emojiIco.attr);
+        emoji.addClass(_instance.options.emojiPanel.emojiBtn.emojiIco.attr.class+'-'+emojiIcoName);
         emoji.attr('alt', emojiIcoTable[emojiIcoName].alt);
 
-        var panelBtn = $('<span/>', taEmoji.options.emojiPanel.emojiBtn.attr);
+        var panelBtn = $('<span/>', _instance.options.emojiPanel.emojiBtn.attr);
         panelBtn.attr('data-ta-emoji', emojiIcoName);
         panelBtn.append(emoji);
         panelBtn.click(function(){
-            taEmoji.emojiTextarea.focus();
+        	$('#'+_instance.options.emojiTextarea.attr.id).focus();
             var emojiIcoName = $(this).data('ta-emoji');
-            var emoji = taEmoji.createEmojiEl(emojiIcoName, emojiIcoTable[emojiIcoName].alt);
-            taEmoji.pasteHtmlAtCaret(emoji[0].outerHTML);
+            var emoji = _instance.createEmojiEl(emojiIcoName, emojiIcoTable[emojiIcoName].alt);
+            _instance.pasteHtmlAtCaret(emoji[0].outerHTML);
+            _instance.emojiTextarea.keyup();
+            if (_instance.options.emojiPanel.hideOnSelectOne) {
+            	hideEmojiPanel();
+            }
             return false;
         });
 
-        emojiPanel.append(panelBtn);
-
+        panelBtns[emojiIcoTable[emojiIcoName].sort] = panelBtn;
     }
+    for (key in panelBtns) emojiPanel.append(panelBtns[key]);
 
     emojiPanel.hide();
     $('body').append(emojiPanel);
 };
 
-taEmoji.showEmojiPanel = function(position){
-
+taEmojiClass.showEmojiPanel = function(position){
     var $ = jQuery;
+    var _instance = this;
 
-    var emojiPanel = $('#'+taEmoji.options.emojiPanel.attr.id);
+    var emojiPanel = $('#'+_instance.options.emojiPanel.attr.id);
 
     if (emojiPanel.is(':visible')) return;
 
     if (!emojiPanel.length) {
-		taEmoji.loadEmojiPanel();
+    	_instance.loadEmojiPanel();
 	}
 
-	position.top -= emojiPanel.height();
 	emojiPanel.css(position);
 	emojiPanel.show();
 };
